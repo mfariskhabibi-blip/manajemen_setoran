@@ -1,49 +1,73 @@
 # Disable directory browsing
 Options -Indexes
 
-# ----------------------------------------------------------------------
-# Rewrite engine
-# ----------------------------------------------------------------------
+# Prevent access to specific files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
 
-# Turning on the rewrite engine is necessary for the following rules and features.
-# FollowSymLinks must be enabled for this to work.
-<IfModule mod_rewrite.c>
-	Options +FollowSymlinks
-	RewriteEngine On
+<FilesMatch "(\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp)|~)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
 
-	# If you installed CodeIgniter in a subfolder, you will need to
-	# change the following line to match the subfolder you need.
-	# http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
-	# RewriteBase /
+# Set default character set
+AddDefaultCharset UTF-8
 
-	# Redirect Trailing Slashes...
-	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteCond %{REQUEST_URI} (.+)/$
-	RewriteRule ^ %1 [L,R=301]
+# Security headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
 
-	# Rewrite "www.example.com -> example.com"
-	RewriteCond %{HTTPS} !=on
-	RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-	RewriteRule ^ http://%1%{REQUEST_URI} [R=301,L]
+# Enable rewrite engine
+RewriteEngine On
 
-	# Checks to see if the user is attempting to access a valid file,
-	# such as an image or css document, if this isn't true it sends the
-	# request to the front controller, index.php
-	RewriteCond %{REQUEST_FILENAME} !-f
-	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteRule ^([\s\S]*)$ index.php/$1 [L,NC,QSA]
+# Redirect Trailing Slashes If Not A Folder...
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} (.+)/$
+RewriteRule ^ %1 [L,R=301]
 
-	# Ensure Authorization header is passed along
-	RewriteCond %{HTTP:Authorization} .
-	RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+# Send Requests To Front Controller...
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
+
+# Protect sensitive directories
+<Directory "uploads">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+# Allow specific file types
+<FilesMatch "\.(css|js|jpg|jpeg|png|gif|ico|pdf|svg|woff|woff2|ttf|eot)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Cache control for static assets
+<FilesMatch "\.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$">
+    Header set Cache-Control "max-age=31536000, public"
+</FilesMatch>
+
+# Prevent access to PHP files directly (except index.php)
+<FilesMatch "\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<Files "index.php">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
 
-<IfModule !mod_rewrite.c>
-	# If we don't have mod_rewrite installed, all 404's
-	# can be sent to index.php, and everything works as normal.
-	ErrorDocument 404 index.php
-</IfModule>
-
-# Disable server signature start
-ServerSignature Off
-# Disable server signature end
+# Error documents
+ErrorDocument 403 /index.php?/error/403
+ErrorDocument 404 /index.php?/error/404
+ErrorDocument 500 /index.php?/error/500

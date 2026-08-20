@@ -1,0 +1,74 @@
+# Disable directory browsing
+Options -Indexes
+
+# Prevent access to specific files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "(\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp)|~)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# Force SSL (uncomment for production)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Protect specific directories
+<Directory "app/">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+<Directory "system/">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+<Directory "vendor/">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+<Directory "writable/">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+# Allow access to public directory
+<Directory "public">
+    Options -Indexes
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+</Directory>
+
+# Redirect to public directory
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Prevent access to setup files in production
+<Files "setup.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "test_system.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Security headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
