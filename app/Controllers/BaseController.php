@@ -34,7 +34,7 @@ abstract class BaseController extends Controller
      *
      * @var array
      */
-    protected $helpers = ['form', 'url', 'session', 'html'];
+    protected $helpers = ['form', 'url', 'session', 'html', 'cookie'];
 
     /**
      * Session instance
@@ -51,12 +51,12 @@ abstract class BaseController extends Controller
     protected $userData;
 
     /**
-     * Constructor.
+     * Initialize controller
      */
-    public function __construct()
+    public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
-        parent::__construct();
-        
+        parent::initController($request, $response, $logger);
+
         $this->session = service('session');
         
         // Initialize user data if logged in
@@ -64,14 +64,6 @@ abstract class BaseController extends Controller
             $userModel = new \App\Models\UserModel();
             $this->userData = $userModel->find($this->session->get('user_id'));
         }
-    }
-
-    /**
-     * Initialize controller
-     */
-    public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
-    {
-        parent::initController($request, $response, $logger);
 
         // Load helpers
         helper($this->helpers);

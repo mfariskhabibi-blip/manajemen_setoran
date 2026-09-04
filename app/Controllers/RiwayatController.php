@@ -15,8 +15,24 @@ class RiwayatController extends BaseController
 
         $setoranModel = new \App\Models\SetoranModel();
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
+        $acaraModel = new \App\Models\AcaraModel();
+
+        // Get active event
+        $activeEvent = $acaraModel->getActiveEvent();
+        $eventSummary = $acaraModel->getEventSummary($activeEvent['id']);
+
+        $pengeluaranModel = new \App\Models\PengeluaranModel();
+        $totalPengeluaran = $pengeluaranModel->getTotalPengeluaran();
+        $terkumpulAcara   = (float)($eventSummary['total_terkumpul'] ?? 0);
+        $saldoKasNet      = $terkumpulAcara - $totalPengeluaran;
+        $targetDana       = (float)($activeEvent['target_total'] ?? 50000000);
+
+        $progressGross = $targetDana > 0 ? min(100, round(($terkumpulAcara / $targetDana) * 100, 1)) : 0;
+        $progressNet   = $targetDana > 0 ? max(0, min(100, round(($saldoKasNet / $targetDana) * 100, 1))) : 0;
 
         // Get filter parameters
+        $programId = $this->request->getGet('program');
         $periodeId = $this->request->getGet('periode');
         $status = $this->request->getGet('status');
         $startDate = $this->request->getGet('start_date');
@@ -24,8 +40,14 @@ class RiwayatController extends BaseController
         $search = $this->request->getGet('search');
 
         // Build query
-        $query = $setoranModel->where('user_id', $this->userData['id'])
+        $query = $setoranModel->select('setoran.*, p.nama_program')
+                             ->join('programs p', 'p.id = setoran.program_id', 'left')
+                             ->where('user_id', $this->userData['id'])
                              ->where('status_setoran !=', 'dibatalkan');
+
+        if ($programId) {
+            $query->where('setoran.program_id', $programId);
+        }
 
         if ($periodeId) {
             $query->where('periode_id', $periodeId);
@@ -62,6 +84,9 @@ class RiwayatController extends BaseController
 
         // Get all periodes for filter
         $periodes = $periodeModel->findAll();
+        
+        // Get all programs for filter
+        $programs = $programModel->getProgramsForUser($this->userData['id']);
 
         // Get statistics
         $stats = $setoranModel->getUserSummary($this->userData['id']);
@@ -74,9 +99,13 @@ class RiwayatController extends BaseController
             'setoran' => $setoran,
             'pager' => $pager,
             'periodes' => $periodes,
+            'programs' => $programs,
             'stats' => $stats,
             'yearlySummary' => $yearlySummary,
+            'activeEvent' => $activeEvent,
+            'eventSummary' => $eventSummary,
             'filters' => [
+                'program' => $programId,
                 'periode' => $periodeId,
                 'status' => $status,
                 'start_date' => $startDate,
@@ -122,6 +151,8 @@ class RiwayatController extends BaseController
 
         $setoranModel = new \App\Models\SetoranModel();
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
+        $acaraModel = new \App\Models\AcaraModel();
 
         $setoran = $setoranModel->find($id);
 
@@ -135,11 +166,15 @@ class RiwayatController extends BaseController
         }
 
         $periode = $periodeModel->find($setoran['periode_id']);
+        $program = $programModel->find($setoran['program_id']);
+        $acara = $setoran['acara_id'] ? $acaraModel->find($setoran['acara_id']) : null;
 
         $data = [
             'title' => 'Detail Riwayat Setoran',
             'setoran' => $setoran,
             'periode' => $periode,
+            'program' => $program,
+            'acara' => $acara,
         ];
 
         return $this->render('riwayat/detail', $data);
@@ -155,16 +190,24 @@ class RiwayatController extends BaseController
         }
 
         $setoranModel = new \App\Models\SetoranModel();
+        $programModel = new \App\Models\ProgramModel();
 
         // Get filter parameters
+        $programId = $this->request->getGet('program');
         $periodeId = $this->request->getGet('periode');
         $startDate = $this->request->getGet('start_date');
         $endDate = $this->request->getGet('end_date');
         $format = $this->request->getGet('format') ?? 'pdf';
 
         // Build query
-        $query = $setoranModel->where('user_id', $this->userData['id'])
+        $query = $setoranModel->select('setoran.*, p.nama_program')
+                             ->join('programs p', 'p.id = setoran.program_id', 'left')
+                             ->where('user_id', $this->userData['id'])
                              ->where('status_setoran !=', 'dibatalkan');
+
+        if ($programId) {
+            $query->where('setoran.program_id', $programId);
+        }
 
         if ($periodeId) {
             $query->where('periode_id', $periodeId);
@@ -193,6 +236,7 @@ class RiwayatController extends BaseController
             'total_transactions' => $totalTransactions,
             'export_date' => date('Y-m-d H:i:s'),
             'filters' => [
+                'program' => $programId,
                 'periode' => $periodeId,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
@@ -224,16 +268,19 @@ class RiwayatController extends BaseController
         $csv .= "Periode: " . ($data['filters']['start_date'] ?? 'Semua') . " s/d " . ($data['filters']['end_date'] ?? 'Semua') . "\n";
         $csv .= "Tanggal Ekspor: " . $data['export_date'] . "\n\n";
         
-        $csv .= "No,Tanggal Setoran,Periode,Nominal,Status,Keterangan\n";
+        $csv .= "No,Tanggal Setoran,Program,Periode,Nominal,Status,Keterangan\n";
         
         $counter = 1;
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
         
         foreach ($data['setoran'] as $item) {
             $periode = $periodeModel->find($item['periode_id']);
+            $program = isset($item['program_id']) ? $programModel->find($item['program_id']) : null;
             
             $csv .= $counter++ . ",";
             $csv .= $item['tanggal_setoran'] . ",";
+            $csv .= ($program ? $program['nama_program'] : '-') . ",";
             $csv .= ($periode ? $periode['nama_periode'] : '-') . ",";
             $csv .= $item['nominal'] . ",";
             $csv .= $item['status_setoran'] . ",";
@@ -273,17 +320,20 @@ class RiwayatController extends BaseController
         $html .= '<p>Tanggal Ekspor: ' . $data['export_date'] . '</p>';
         
         $html .= '<table>';
-        $html .= '<tr><th>No</th><th>Tanggal Setoran</th><th>Periode</th><th>Nominal</th><th>Status</th><th>Keterangan</th></tr>';
+        $html .= '<tr><th>No</th><th>Tanggal Setoran</th><th>Program</th><th>Periode</th><th>Nominal</th><th>Status</th><th>Keterangan</th></tr>';
         
         $counter = 1;
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
         
         foreach ($data['setoran'] as $item) {
             $periode = $periodeModel->find($item['periode_id']);
+            $program = isset($item['program_id']) ? $programModel->find($item['program_id']) : null;
             
             $html .= '<tr>';
             $html .= '<td>' . $counter++ . '</td>';
             $html .= '<td>' . $item['tanggal_setoran'] . '</td>';
+            $html .= '<td>' . ($program ? $program['nama_program'] : '-') . '</td>';
             $html .= '<td>' . ($periode ? $periode['nama_periode'] : '-') . '</td>';
             $html .= '<td>' . number_format($item['nominal'], 0, ',', '.') . '</td>';
             $html .= '<td>' . $item['status_setoran'] . '</td>';

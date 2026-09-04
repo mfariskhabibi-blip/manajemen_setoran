@@ -10,8 +10,8 @@ class PeriodeModel extends Model
     protected $primaryKey = 'id';
     
     protected $allowedFields = [
-        'nama_periode', 'tanggal_mulai', 'tanggal_selesai',
-        'jumlah_kewajiban', 'status', 'created_at', 'updated_at'
+        'program_id', 'nama_periode', 'tanggal_mulai', 'tanggal_selesai',
+        'nominal_kewajiban', 'status', 'created_at', 'updated_at'
     ];
     
     protected $useTimestamps = true;
@@ -19,10 +19,11 @@ class PeriodeModel extends Model
     protected $updatedField = 'updated_at';
     
     protected $validationRules = [
+        'program_id' => 'required|numeric',
         'nama_periode' => 'required|min_length[3]|max_length[100]',
         'tanggal_mulai' => 'required|valid_date',
         'tanggal_selesai' => 'required|valid_date',
-        'jumlah_kewajiban' => 'required|numeric',
+        'nominal_kewajiban' => 'required|numeric',
         'status' => 'required|in_list[belum_aktif,aktif,selesai]',
     ];
     
@@ -32,6 +33,26 @@ class PeriodeModel extends Model
     public function getActivePeriode()
     {
         return $this->where('status', 'aktif')->first();
+    }
+    
+    /**
+     * Get active periode by program
+     */
+    public function getActivePeriodeByProgram($programId)
+    {
+        return $this->where('program_id', $programId)
+                    ->where('status', 'aktif')
+                    ->first();
+    }
+    
+    /**
+     * Get periode by program
+     */
+    public function getByProgram($programId)
+    {
+        return $this->where('program_id', $programId)
+                    ->orderBy('tanggal_mulai', 'ASC')
+                    ->findAll();
     }
     
     /**
@@ -58,12 +79,13 @@ class PeriodeModel extends Model
     }
     
     /**
-     * Check if periode overlaps with existing periode
+     * Check if periode overlaps with existing periode in the same program
      */
-    public function checkOverlap($startDate, $endDate, $excludeId = null)
+    public function checkOverlap($programId, $startDate, $endDate, $excludeId = null)
     {
-        $query = $this->where('(tanggal_mulai <=', $endDate)
-                      ->where('tanggal_selesai >=', $startDate . ')');
+        $query = $this->where('program_id', $programId)
+                      ->where('tanggal_mulai <=', $endDate)
+                      ->where('tanggal_selesai >=', $startDate);
         
         if ($excludeId) {
             $query->where('id !=', $excludeId);

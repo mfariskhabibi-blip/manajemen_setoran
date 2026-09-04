@@ -71,7 +71,5 @@
         </button>
     </form>
     
-    <div class="auth-links">
-        Belum punya akun? <a href="<?= base_url('register') ?>">Daftar di sini</a>
-    </div>
+    
 <?= $this->endSection() ?>

@@ -15,28 +15,82 @@ class DashboardController extends BaseController
 
         $setoranModel = new \App\Models\SetoranModel();
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
+        $pesertaProgramModel = new \App\Models\PesertaProgramModel();
+        $pengeluaranModel    = new \App\Models\PengeluaranModel();
 
-        // Get user statistics
-        $userStats = $setoranModel->getUserSummary($this->userData['id']);
-
-        // Get active periode
-        $activePeriode = $periodeModel->getActivePeriode();
-
-        // Get user setoran for active periode
-        $activePeriodeSetoran = [];
-        if ($activePeriode) {
-            $activePeriodeSetoran = $setoranModel->where('user_id', $this->userData['id'])
-                                                ->where('periode_id', $activePeriode['id'])
-                                                ->where('status_setoran !=', 'dibatalkan')
-                                                ->findAll();
+        // Get user's programs
+        $userPrograms = $programModel->getProgramsForUser($this->userData['id']);
+        
+        // Get user statistics across all programs
+        $totalKewajiban = 0;
+        $totalSetoran = 0;
+        $activeProgram = null;
+        $activePeriode = null;
+        
+        foreach ($userPrograms as $program) {
+            $summary = $pesertaProgramModel->getUserProgramSummary($this->userData['id'], $program['id']);
+            if ($summary) {
+                $totalKewajiban += $summary['peserta']['total_kewajiban'];
+                $totalSetoran += $summary['total_setoran'];
+                
+                // Get first active program as active program
+                if (!$activeProgram && $program['status'] === 'aktif') {
+                    $activeProgram = $program;
+                    $activeProgram['summary'] = $summary;
+                }
+            }
         }
-
-        // Calculate progress
+        
+        // Get active periode for active program
+        if ($activeProgram) {
+            $activePeriode = $periodeModel->getActivePeriodeByProgram($activeProgram['id']);
+        }
+        
+        // Calculate user progress
         $progress = 0;
-        if ($activePeriode && $activePeriode['jumlah_kewajiban'] > 0) {
-            $totalSetoran = $setoranModel->getTotalByUser($this->userData['id']);
-            $progress = min(100, ($totalSetoran / $activePeriode['jumlah_kewajiban']) * 100);
+        if ($totalKewajiban > 0) {
+            $progress = min(100, ($totalSetoran / $totalKewajiban) * 100);
         }
+        
+        // Determine status
+        if ($totalSetoran == 0) {
+            $statusKewajiban = 'belum_mulai';
+        } elseif ($totalSetoran < $totalKewajiban) {
+            $statusKewajiban = 'berjalan';
+        } else {
+            $statusKewajiban = 'selesai';
+        }
+        
+        // Get active event details & community kas totals
+        $acaraModel = new \App\Models\AcaraModel();
+        $activeEvent = $acaraModel->getActiveEvent();
+        $eventSummary = $acaraModel->getEventSummary($activeEvent['id']);
+
+        $setoranStats = $setoranModel->getSetoranStats();
+        $totalSetoranKomunitas = (float)($setoranStats['total_setoran'] ?? 0);
+        $totalPengeluaranKomunitas = $pengeluaranModel->getTotalPengeluaran();
+        $saldoKasNetKomunitas = $totalSetoranKomunitas - $totalPengeluaranKomunitas;
+
+        $targetTotalEvent = $activeEvent ? (float)($activeEvent['target_total'] ?? 50000000) : 50000000;
+        $progressGross = $targetTotalEvent > 0 ? min(100, round(($totalSetoranKomunitas / $targetTotalEvent) * 100, 1)) : 0;
+        $progressNet   = $targetTotalEvent > 0 ? max(0, min(100, round(($saldoKasNetKomunitas / $targetTotalEvent) * 100, 1))) : 0;
+
+        // Calculate specific user setoran for active event
+        $db = \Config\Database::connect();
+        $userEventSetoran = $db->table('setoran')
+            ->selectSum('nominal', 'total')
+            ->where('user_id', $this->userData['id'])
+            ->where('status_setoran !=', 'dibatalkan')
+            ->get()->getRow()->total ?? 0;
+
+        $acaraWarga = $db->table('acara_warga')
+            ->where('acara_id', $activeEvent['id'])
+            ->where('user_id', $this->userData['id'])
+            ->get()->getRowArray();
+
+        $userKewajiban = (float)($acaraWarga['nominal_kewajiban'] ?? $activeEvent['tarif_default']);
+        $userSisaTagihan = max(0, $userKewajiban - (float)$userEventSetoran);
 
         // Get recent setoran
         $recentSetoran = $setoranModel->where('user_id', $this->userData['id'])
@@ -44,38 +98,28 @@ class DashboardController extends BaseController
                                      ->limit(5)
                                      ->findAll();
 
-        // Get all user periodes
-        $userPeriodes = $periodeModel->getPeriodesForUser($this->userData['created_at']);
-
-        // Calculate periode statistics
-        $periodeStats = [
-            'total' => count($userPeriodes),
-            'completed' => 0,
-            'in_progress' => 0,
-            'not_started' => 0,
-        ];
-
-        foreach ($userPeriodes as $periode) {
-            $periodeSetoran = $setoranModel->getUserSummary($this->userData['id'], $periode['id']);
-            
-            if ($periodeSetoran['total'] >= $periode['jumlah_kewajiban']) {
-                $periodeStats['completed']++;
-            } elseif ($periodeSetoran['total'] > 0) {
-                $periodeStats['in_progress']++;
-            } else {
-                $periodeStats['not_started']++;
-            }
-        }
-
         $data = [
-            'title' => 'Dashboard',
-            'userStats' => $userStats,
-            'activePeriode' => $activePeriode,
-            'activePeriodeSetoran' => $activePeriodeSetoran,
-            'progress' => $progress,
-            'recentSetoran' => $recentSetoran,
-            'userPeriodes' => $userPeriodes,
-            'periodeStats' => $periodeStats,
+            'title'                     => 'Dashboard',
+            'activeEvent'               => $activeEvent,
+            'eventSummary'              => $eventSummary,
+            'userEventSetoran'          => (float)$userEventSetoran,
+            'userKewajiban'             => $userKewajiban,
+            'userSisaTagihan'           => $userSisaTagihan,
+            'userPrograms'              => $userPrograms,
+            'activeProgram'             => $activeProgram,
+            'activePeriode'             => $activePeriode,
+            'totalKewajiban'            => $totalKewajiban,
+            'totalSetoran'              => $totalSetoran,
+            'sisaKewajiban'             => $totalKewajiban - $totalSetoran,
+            'progress'                  => $progress,
+            'statusKewajiban'           => $statusKewajiban,
+            'recentSetoran'             => $recentSetoran,
+            'totalSetoranKomunitas'     => $totalSetoranKomunitas,
+            'totalPengeluaranKomunitas' => $totalPengeluaranKomunitas,
+            'saldoKasNetKomunitas'     => $saldoKasNetKomunitas,
+            'targetTotalEvent'          => $targetTotalEvent,
+            'progressGross'             => $progressGross,
+            'progressNet'               => $progressNet,
         ];
 
         return $this->render('dashboard/index', $data);
@@ -93,16 +137,36 @@ class DashboardController extends BaseController
         $userModel = new \App\Models\UserModel();
         $setoranModel = new \App\Models\SetoranModel();
         $periodeModel = new \App\Models\PeriodeModel();
+        $programModel = new \App\Models\ProgramModel();
+        $acaraModel = new \App\Models\AcaraModel();
+        $pengeluaranModel = new \App\Models\PengeluaranModel();
+
+        // Get active event details
+        $activeEvent = $acaraModel->getActiveEvent();
+        $eventSummary = $acaraModel->getEventSummary($activeEvent['id']);
 
         // Get statistics
         $userStats = $userModel->getUserStats();
         $setoranStats = $setoranModel->getSetoranStats();
         $periodeStats = $periodeModel->getPeriodeStats();
+        $programStats = $programModel->getProgramStats();
 
         // Get monthly statistics for chart
         $monthlyStats = $setoranModel->getMonthlyStats(date('Y'));
 
-        // Get recent activities (simplified - use log model in real app)
+        // Get Pengeluaran stats & Saldo Kas Net
+        $totalPengeluaran = $pengeluaranModel->getTotalPengeluaran();
+        $totalSetoran = (float)($setoranStats['total_setoran'] ?? 0);
+        $saldoKasNet = $totalSetoran - $totalPengeluaran;
+
+        $setoranStats['total_pengeluaran'] = $totalPengeluaran;
+        $setoranStats['saldo_kas_net']     = $saldoKasNet;
+
+        $targetTotalEvent = $activeEvent ? (float)($activeEvent['target_total'] ?? 50000000) : 50000000;
+        $progressGross = $targetTotalEvent > 0 ? min(100, round(($totalSetoran / $targetTotalEvent) * 100, 1)) : 0;
+        $progressNet   = $targetTotalEvent > 0 ? max(0, min(100, round(($saldoKasNet / $targetTotalEvent) * 100, 1))) : 0;
+
+        // Get recent activities
         $recentSetoran = $setoranModel->getRecentSetoran(5);
         
         // Get recent users
@@ -116,15 +180,27 @@ class DashboardController extends BaseController
             'diverifikasi' => $setoranModel->getByStatus('diverifikasi'),
             'dikoreksi' => $setoranModel->getByStatus('dikoreksi'),
         ];
+        
+        // Get programs with stats
+        $programs = $programModel->getAllWithStats();
 
         $data = [
-            'title' => 'Dashboard Admin',
-            'userStats' => $userStats,
-            'setoranStats' => $setoranStats,
-            'periodeStats' => $periodeStats,
-            'monthlyStats' => $monthlyStats,
-            'recentSetoran' => $recentSetoran,
-            'recentUsers' => $recentUsers,
+            'title'           => 'Dashboard Admin',
+            'activeEvent'     => $activeEvent,
+            'eventSummary'    => $eventSummary,
+            'userStats'       => $userStats,
+            'setoranStats'    => $setoranStats,
+            'totalPengeluaran'=> $totalPengeluaran,
+            'saldoKasNet'     => $saldoKasNet,
+            'targetTotalEvent'=> $targetTotalEvent,
+            'progressGross'   => $progressGross,
+            'progressNet'     => $progressNet,
+            'periodeStats'    => $periodeStats,
+            'programStats'    => $programStats,
+            'programs'        => $programs,
+            'monthlyStats'    => $monthlyStats,
+            'recentSetoran'   => $recentSetoran,
+            'recentUsers'     => $recentUsers,
             'setoranByStatus' => $setoranByStatus,
         ];
 
@@ -146,17 +222,22 @@ class DashboardController extends BaseController
 
         $setoranModel = new \App\Models\SetoranModel();
         $periodeModel = new \App\Models\PeriodeModel();
+        $pengeluaranModel = new \App\Models\PengeluaranModel();
 
         $responseData = [];
 
         if ($this->userData['role'] === 'admin') {
             // Admin statistics
             $userModel = new \App\Models\UserModel();
+            $totalSetoran = (float)($setoranModel->getSetoranStats()['total_setoran'] ?? 0);
+            $totalPengeluaran = $pengeluaranModel->getTotalPengeluaran();
             
             $responseData = [
-                'total_users' => $userModel->countAll(),
-                'total_setoran' => $setoranModel->getSetoranStats()['total_setoran'],
-                'active_periode' => $periodeModel->where('status', 'aktif')->countAllResults(),
+                'total_users'          => $userModel->countAll(),
+                'total_setoran'        => $totalSetoran,
+                'total_pengeluaran'    => $totalPengeluaran,
+                'saldo_kas_net'        => $totalSetoran - $totalPengeluaran,
+                'active_periode'       => $periodeModel->where('status', 'aktif')->countAllResults(),
                 'pending_verification' => $setoranModel->where('status_setoran', 'tercatat')->countAllResults(),
             ];
         } else {

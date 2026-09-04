@@ -432,39 +432,72 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="<?= base_url('dashboard') ?>" class="logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-hand-holding-usd"></i>
-                    </div>
+                    <img src="<?= base_url('assets/img/logo.jpg') ?>" alt="Logo Mandelun Community" class="rounded-3 shadow-sm me-2" style="width: 42px; height: 42px; object-fit: cover;">
                     <div class="logo-text">
-                        Sistem Setoran
+                        Mandelun
                     </div>
                 </a>
             </div>
             
             <div class="sidebar-menu">
-                <a href="<?= base_url('dashboard') ?>" class="menu-item <?= current_url() == base_url('dashboard') ? 'active' : '' ?>">
-                    <i class="fas fa-home"></i> Dashboard
-                </a>
-                
-                <a href="<?= base_url('setoran') ?>" class="menu-item <?= strpos(current_url(), base_url('setoran')) !== false ? 'active' : '' ?>">
-                    <i class="fas fa-money-bill-wave"></i> Setoran Iuran
-                </a>
-                
-                <a href="<?= base_url('riwayat') ?>" class="menu-item <?= strpos(current_url(), base_url('riwayat')) !== false ? 'active' : '' ?>">
-                    <i class="fas fa-history"></i> Riwayat Setoran
-                </a>
-                
-                <a href="<?= base_url('chat') ?>" class="menu-item <?= strpos(current_url(), base_url('chat')) !== false ? 'active' : '' ?>">
-                    <i class="fas fa-comments"></i> Obrolan
-                    <span class="badge badge-danger ms-2" id="unread-count">0</span>
-                </a>
-                
+                <?php if (isset($user['role']) && $user['role'] === 'admin'): ?>
+                    <!-- ADMIN MENU (8 Items) -->
+                    <a href="<?= base_url('admin/dashboard') ?>" class="menu-item <?= (current_url() == base_url('admin/dashboard') || current_url() == base_url('dashboard')) ? 'active' : '' ?>">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                    <a href="<?= base_url('admin/setoran') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/setoran')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-money-bill-wave"></i> Kelola Setoran
+                    </a>
+                    <a href="<?= base_url('admin/pengeluaran') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/pengeluaran')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-receipt"></i> Kelola Pengeluaran
+                    </a>
+                    <a href="<?= base_url('admin/users') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/users')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-users"></i> Data Pengguna
+                    </a>
+                    <a href="<?= base_url('admin/rekap') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/rekap')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-file-invoice-dollar"></i> Rekap Setoran
+                    </a>
+                    <a href="<?= base_url('chat') ?>" class="menu-item <?= (strpos(current_url(), base_url('chat')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-comments"></i> Obrolan
+                        <span class="badge badge-danger ms-2" id="unread-count">0</span>
+                    </a>
+                    <a href="<?= base_url('admin/activity-log') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/activity-log')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-history"></i> Log Aktivitas
+                    </a>
+                    <a href="<?= base_url('admin/acara') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/acara')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-calendar-alt"></i> Pengaturan Acara
+                    </a>
+                    <a href="<?= base_url('admin/settings') ?>" class="menu-item <?= (strpos(current_url(), base_url('admin/settings')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-cog"></i> Pengaturan
+                    </a>
+                <?php else: ?>
+                    <!-- USER MENU (6 Items) -->
+                    <a href="<?= base_url('dashboard') ?>" class="menu-item <?= (current_url() == base_url('dashboard')) ? 'active' : '' ?>">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                    <a href="<?= base_url('setoran') ?>" class="menu-item <?= (strpos(current_url(), base_url('setoran')) !== false && strpos(current_url(), base_url('admin/setoran')) === false) ? 'active' : '' ?>">
+                        <i class="fas fa-eye"></i> Setoran Iuran
+                    </a>
+                    <a href="<?= base_url('riwayat') ?>" class="menu-item <?= (strpos(current_url(), base_url('riwayat')) !== false && strpos(current_url(), base_url('admin/rekap')) === false) ? 'active' : '' ?>">
+                        <i class="fas fa-receipt"></i> Riwayat Setoran
+                    </a>
+                    <a href="<?= base_url('pengeluaran') ?>" class="menu-item <?= (strpos(current_url(), base_url('pengeluaran')) !== false && strpos(current_url(), base_url('admin/pengeluaran')) === false) ? 'active' : '' ?>">
+                        <i class="fas fa-file-invoice-dollar"></i> Pengeluaran Kas
+                    </a>
+                    <a href="<?= base_url('transparansi') ?>" class="menu-item <?= (strpos(current_url(), base_url('transparansi')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-globe"></i> Transparansi Kas
+                    </a>
+                    <a href="<?= base_url('chat') ?>" class="menu-item <?= (strpos(current_url(), base_url('chat')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-comments"></i> Obrolan Pengguna
+                        <span class="badge badge-danger ms-2" id="unread-count">0</span>
+                    </a>
+                    <a href="<?= base_url('profile') ?>" class="menu-item <?= (strpos(current_url(), base_url('profile')) !== false) ? 'active' : '' ?>">
+                        <i class="fas fa-user"></i> Profil
+                    </a>
+                <?php endif; ?>
+
                 <div class="menu-divider"></div>
-                
-                <a href="<?= base_url('profile') ?>" class="menu-item <?= strpos(current_url(), base_url('profile')) !== false ? 'active' : '' ?>">
-                    <i class="fas fa-user"></i> Profil
-                </a>
-                
+
                 <a href="<?= base_url('logout') ?>" class="menu-item text-danger">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
@@ -486,11 +519,6 @@
                 </div>
                 
                 <div class="user-menu">
-                    <div class="notification-badge">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge">3</span>
-                    </div>
-                    
                     <div class="user-profile dropdown">
                         <div class="d-flex align-items-center gap-2" data-bs-toggle="dropdown">
                             <div class="user-avatar">
@@ -590,18 +618,95 @@
             });
         }, 5000);
         
-        // Update unread message count (placeholder - implement with AJAX)
+        // ─── Chat Notification System ───────────────────────────────────────
+        let _prevUnread = -1; // -1 = first run, don't notify yet
+
         function updateUnreadCount() {
-            // This would normally fetch from API
-            // fetch('/api/chat/unread-count')
-            //     .then(response => response.json())
-            //     .then(data => {
-            //         document.getElementById('unread-count').textContent = data.count;
-            //     });
+            fetch('<?= base_url('api/chat/unread-count') ?>', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status !== 'success') return;
+                const count = data.count || 0;
+                
+                // Update badge(s) in sidebar
+                document.querySelectorAll('#unread-count').forEach(el => {
+                    el.textContent = count > 0 ? (count > 99 ? '99+' : count) : '';
+                    el.style.display = count > 0 ? 'inline-block' : 'none';
+                });
+
+                // On first run just record the baseline — don't notify
+                if (_prevUnread === -1) { _prevUnread = count; return; }
+
+                // New messages arrived since last check
+                if (count > _prevUnread) {
+                    const newCount = count - _prevUnread;
+                    playNotifSound();
+                    showChatToast(newCount);
+                }
+                _prevUnread = count;
+            })
+            .catch(() => {}); // silently ignore network errors
         }
-        
-        // Update every 30 seconds
-        setInterval(updateUnreadCount, 30000);
+
+        function playNotifSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.45);
+            } catch(e) {}
+        }
+
+        function showChatToast(count) {
+            // Remove existing toast
+            const old = document.getElementById('chat-notif-toast');
+            if (old) old.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'chat-notif-toast';
+            toast.innerHTML = `
+                <div style="position:fixed;bottom:24px;right:24px;z-index:99999;
+                    background:#1e40af;color:#fff;border-radius:14px;padding:14px 20px;
+                    box-shadow:0 8px 30px rgba(30,64,175,0.4);display:flex;align-items:center;
+                    gap:12px;min-width:240px;max-width:320px;cursor:pointer;
+                    animation:slideInRight 0.35s ease;" onclick="window.location='<?= base_url('chat') ?>'">
+                    <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.2);
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas fa-comment-dots" style="font-size:18px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;font-size:0.9rem;">Pesan Baru!</div>
+                        <div style="font-size:0.8rem;opacity:0.85;">${count} pesan belum dibaca — Klik untuk melihat</div>
+                    </div>
+                    <div style="margin-left:auto;opacity:0.7;font-size:18px;" onclick="this.closest('#chat-notif-toast').remove()">×</div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
+        }
+
+        // Inject keyframe animation once
+        if (!document.getElementById('notif-style')) {
+            const s = document.createElement('style');
+            s.id = 'notif-style';
+            s.textContent = '@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}';
+            document.head.appendChild(s);
+        }
+
+        // Hide badge when count is 0 on load
+        document.querySelectorAll('#unread-count').forEach(el => { el.style.display = 'none'; });
+
+        // Poll every 15 seconds
+        setInterval(updateUnreadCount, 15000);
         updateUnreadCount();
         
         // Handle dropdown clicks

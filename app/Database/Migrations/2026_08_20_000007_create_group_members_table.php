@@ -32,7 +32,7 @@ class CreateGroupMembersTable extends Migration
         ]);
         
         $this->forge->addKey('id', true);
-        $this->forge->addKey(['group_id', 'user_id'], true);
+        $this->forge->addUniqueKey(['group_id', 'user_id']);
         
         // Foreign keys
         $this->forge->addForeignKey('group_id', 'groups', 'id', 'CASCADE', 'CASCADE');

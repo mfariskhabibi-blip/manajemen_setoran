@@ -10,7 +10,7 @@ class SetoranModel extends Model
     protected $primaryKey = 'id';
     
     protected $allowedFields = [
-        'user_id', 'periode_id', 'tanggal_setoran', 'nominal',
+        'user_id', 'program_id', 'acara_id', 'periode_id', 'tanggal_setoran', 'nominal',
         'status_setoran', 'keterangan', 'created_by', 'created_at', 'updated_at'
     ];
     
@@ -20,6 +20,7 @@ class SetoranModel extends Model
     
     protected $validationRules = [
         'user_id' => 'required|numeric',
+        'program_id' => 'required|numeric',
         'periode_id' => 'required|numeric',
         'tanggal_setoran' => 'required|valid_date',
         'nominal' => 'required|numeric|greater_than[0]',
@@ -33,6 +34,27 @@ class SetoranModel extends Model
     public function getByUser($userId)
     {
         return $this->where('user_id', $userId)
+                    ->orderBy('tanggal_setoran', 'DESC')
+                    ->findAll();
+    }
+    
+    /**
+     * Get setoran by user and program
+     */
+    public function getByUserAndProgram($userId, $programId)
+    {
+        return $this->where('user_id', $userId)
+                    ->where('program_id', $programId)
+                    ->orderBy('tanggal_setoran', 'DESC')
+                    ->findAll();
+    }
+    
+    /**
+     * Get setoran by program
+     */
+    public function getByProgram($programId)
+    {
+        return $this->where('program_id', $programId)
                     ->orderBy('tanggal_setoran', 'DESC')
                     ->findAll();
     }
@@ -57,7 +79,34 @@ class SetoranModel extends Model
                       ->where('status_setoran !=', 'dibatalkan')
                       ->first();
         
-        return $result ? (float)$result->nominal : 0;
+        return $result ? (float)$result['nominal'] : 0;
+    }
+    
+    /**
+     * Get total setoran by user and program
+     */
+    public function getTotalByUserAndProgram($userId, $programId)
+    {
+        $result = $this->selectSum('nominal')
+                      ->where('user_id', $userId)
+                      ->where('program_id', $programId)
+                      ->where('status_setoran !=', 'dibatalkan')
+                      ->first();
+        
+        return $result ? (float)$result['nominal'] : 0;
+    }
+    
+    /**
+     * Get total setoran by program
+     */
+    public function getTotalByProgram($programId)
+    {
+        $result = $this->selectSum('nominal')
+                      ->where('program_id', $programId)
+                      ->where('status_setoran !=', 'dibatalkan')
+                      ->first();
+        
+        return $result ? (float)$result['nominal'] : 0;
     }
     
     /**
@@ -70,7 +119,7 @@ class SetoranModel extends Model
                       ->where('status_setoran !=', 'dibatalkan')
                       ->first();
         
-        return $result ? (float)$result->nominal : 0;
+        return $result ? (float)$result['nominal'] : 0;
     }
     
     /**
@@ -78,10 +127,11 @@ class SetoranModel extends Model
      */
     public function getSetoranStats()
     {
-        return [
-            'total_setoran' => $this->selectSum('nominal')
+        $totalSetoranResult = $this->selectSum('nominal')
                                    ->where('status_setoran !=', 'dibatalkan')
-                                   ->first()->nominal ?? 0,
+                                   ->first();
+        return [
+            'total_setoran' => $totalSetoranResult ? (float)$totalSetoranResult['nominal'] : 0,
             'total_tercatat' => $this->where('status_setoran', 'tercatat')->countAllResults(),
             'total_diverifikasi' => $this->where('status_setoran', 'diverifikasi')->countAllResults(),
             'total_dikoreksi' => $this->where('status_setoran', 'dikoreksi')->countAllResults(),
@@ -134,11 +184,26 @@ class SetoranModel extends Model
     }
     
     /**
+     * Check if user already has setoran for program and periode
+     */
+    public function hasSetoranForProgramPeriode($userId, $programId, $periodeId)
+    {
+        return $this->where('user_id', $userId)
+                    ->where('program_id', $programId)
+                    ->where('periode_id', $periodeId)
+                    ->where('status_setoran !=', 'dibatalkan')
+                    ->countAllResults() > 0;
+    }
+    
+    /**
      * Get recent setoran
      */
     public function getRecentSetoran($limit = 10)
     {
-        return $this->orderBy('created_at', 'DESC')
+        return $this->select('setoran.*, u.nama as user_name')
+                    ->join('users u', 'u.id = setoran.user_id', 'left')
+                    ->orderBy('setoran.tanggal_setoran', 'DESC')
+                    ->orderBy('setoran.id', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -169,8 +234,8 @@ class SetoranModel extends Model
                        ->first();
         
         return [
-            'count' => (int)$result->count,
-            'total' => (float)($result->total ?? 0)
+            'count' => (int)($result['count'] ?? 0),
+            'total' => (float)($result['total'] ?? 0)
         ];
     }
 }

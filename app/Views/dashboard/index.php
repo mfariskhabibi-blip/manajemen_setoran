@@ -1,413 +1,205 @@
 <?= $this->extend('layouts/user_layout') ?>
 
 <?= $this->section('content') ?>
-<div class="container-fluid">
-    <!-- Welcome Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <h3 class="mb-2">Selamat datang, <?= esc($user['nama']) ?>! 👋</h3>
-                            <p class="text-muted mb-0">
-                                <?php if(date('H') < 12): ?>
-                                    Selamat pagi! Semoga hari Anda menyenangkan.
-                                <?php elseif(date('H') < 18): ?>
-                                    Selamat siang! Terus semangat mengumpulkan iuran.
-                                <?php else: ?>
-                                    Selamat malam! Waktunya istirahat setelah seharian beraktivitas.
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                        <div class="text-end">
-                            <div class="badge bg-light text-dark p-2">
-                                <i class="fas fa-calendar me-1"></i>
-                                <?= date('d F Y') ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid px-2 px-md-4 py-3">
+    <!-- Welcome Header -->
+    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Selamat datang, <?= esc($user['nama'] ?? 'Warga') ?>! 👋</h1>
+            <p class="text-muted small mb-0">Pantau perkembangan iuran acara dan catatan setoran pribadi Anda.</p>
+        </div>
+        <div>
+            <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm fs-6">
+                <i class="fas fa-calendar-alt text-primary me-2"></i><?= date('d F Y') ?>
+            </span>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background-color: rgba(30, 64, 175, 0.1); color: var(--primary-color);">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <h3 class="stats-value">Rp <?= number_format($userStats['total'] ?? 0, 0, ',', '.') ?></h3>
-                <p class="stats-label">Total Setoran</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background-color: rgba(16, 185, 129, 0.1); color: var(--secondary-color);">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <h3 class="stats-value"><?= $userStats['count'] ?? 0 ?></h3>
-                <p class="stats-label">Jumlah Setoran</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
-                    <i class="fas fa-percentage"></i>
-                </div>
-                <h3 class="stats-value"><?= number_format($progress ?? 0, 1) ?>%</h3>
-                <p class="stats-label">Progress Setoran</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color);">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h3 class="stats-value"><?= $periodeStats['in_progress'] ?? 0 ?></h3>
-                <p class="stats-label">Periode Berjalan</p>
-            </div>
-        </div>
-    </div>
+    <!-- Active Event Transparency Banner (Dark Slate Navy & Gold) -->
+    <?php if (!empty($activeEvent)): ?>
+        <?php 
+        $targetDana = (float)($activeEvent['target_dana'] ?? 50000000);
+        $totalTerkumpul = (float)($eventSummary['total_terkumpul'] ?? 0);
+        $pct = $targetDana > 0 ? min(100, round(($totalTerkumpul / $targetDana) * 100, 1)) : 0;
+        ?>
+        <div class="card border-0 shadow-sm rounded-4 text-white mb-4 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-left: 6px solid #f59e0b !important;">
+            <div class="card-body p-3 p-md-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-lg-8">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill">
+                                <i class="fas fa-star me-1"></i>ACARA AKTIF SAAT INI
+                            </span>
+                            <span class="badge bg-secondary text-white px-3 py-2 rounded-pill">
+                                Pelaksanaan: <?= date('d M Y', strtotime($activeEvent['tanggal_pelaksanaan'] ?? '2026-05-15')) ?>
+                            </span>
+                        </div>
+                        <h2 class="h3 fw-bold mb-2 text-white"><?= esc($activeEvent['nama_acara'] ?? 'Halalbihalal & Orkes 2026') ?></h2>
+                        <p class="mb-3 text-light small" style="color: #cbd5e1 !important;">
+                            <i class="fas fa-map-marker-alt text-warning me-1"></i><?= esc($activeEvent['lokasi'] ?? 'Lapangan Warga Utama') ?>
+                            <span class="mx-2 d-none d-sm-inline">•</span>
+                            <br class="d-sm-none">
+                            Kewajiban Iuran Per Warga: <strong class="text-white">Rp <?= number_format($userKewajiban ?? 200000, 0, ',', '.') ?></strong>
+                        </p>
 
-    <!-- Progress Section -->
-    <?php if($activePeriode): ?>
-    <div class="row mb-4">
-        <div class="col-md-8 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-line me-2"></i>Progress Setoran - <?= esc($activePeriode['nama_periode']) ?>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Progress</span>
-                            <span class="fw-bold"><?= number_format($progress, 1) ?>%</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: <?= $progress ?>%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-success p-2 rounded me-3">
-                                    <i class="fas fa-arrow-up text-white"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0">Total Setoran</p>
-                                    <h4 class="mb-0">Rp <?= number_format($userStats['total'] ?? 0, 0, ',', '.') ?></h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-danger p-2 rounded me-3">
-                                    <i class="fas fa-arrow-down text-white"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0">Sisa Kewajiban</p>
-                                    <h4 class="mb-0">Rp <?= number_format($activePeriode['jumlah_kewajiban'] - ($userStats['total'] ?? 0), 0, ',', '.') ?></h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <h6>Detail Periode:</h6>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Tanggal Mulai</span>
-                                <span class="fw-bold"><?= date('d F Y', strtotime($activePeriode['tanggal_mulai'])) ?></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Tanggal Selesai</span>
-                                <span class="fw-bold"><?= date('d F Y', strtotime($activePeriode['tanggal_selesai'])) ?></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Target Setoran</span>
-                                <span class="fw-bold">Rp <?= number_format($activePeriode['jumlah_kewajiban'], 0, ',', '.') ?></span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>Status Periode
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center">
-                        <div class="mb-4">
-                            <div class="position-relative d-inline-block">
-                                <canvas id="periodeChart" width="150" height="150"></canvas>
-                                <div class="position-absolute top-50 start-50 translate-middle">
-                                    <h3 class="mb-0"><?= $periodeStats['total'] ?? 0 ?></h3>
-                                    <small class="text-muted">Total</small>
-                                </div>
-                            </div>
-                        </div>
-                        
+                        <!-- Dual Progress Target Acara Komunitas -->
                         <div class="mb-2">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge bg-success me-2">&nbsp;</span>
-                                    <span>Selesai</span>
-                                </div>
-                                <span class="fw-bold"><?= $periodeStats['completed'] ?? 0 ?></span>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-light fw-semibold" style="color: #e2e8f0 !important;"><i class="fas fa-hand-holding-usd text-warning me-1"></i>Setoran Masuk (Gross):</small>
+                                <strong class="text-warning small"><?= $progressGross ?? 0 ?>% (Rp <?= number_format($totalSetoranKomunitas ?? $totalTerkumpul, 0, ',', '.') ?> / Rp <?= number_format($targetTotalEvent ?? $targetDana, 0, ',', '.') ?>)</strong>
                             </div>
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge bg-warning me-2">&nbsp;</span>
-                                    <span>Berjalan</span>
-                                </div>
-                                <span class="fw-bold"><?= $periodeStats['in_progress'] ?? 0 ?></span>
+                            <div class="progress rounded-pill bg-dark bg-opacity-50 mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: <?= $progressGross ?? 0 ?>%;"></div>
                             </div>
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge bg-secondary me-2">&nbsp;</span>
-                                    <span>Belum Mulai</span>
-                                </div>
-                                <span class="fw-bold"><?= $periodeStats['not_started'] ?? 0 ?></span>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-light fw-semibold" style="color: #cbd5e1 !important;"><i class="fas fa-wallet text-info me-1"></i>Saldo Kas Bersih (Net):</small>
+                                <strong class="text-info small"><?= $progressNet ?? 0 ?>% (Rp <?= number_format($saldoKasNetKomunitas ?? 0, 0, ',', '.') ?> / Rp <?= number_format($targetTotalEvent ?? $targetDana, 0, ',', '.') ?>)</strong>
+                            </div>
+                            <div class="progress rounded-pill bg-dark bg-opacity-50" style="height: 8px;">
+                                <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: <?= $progressNet ?? 0 ?>%;"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="col-lg-4 text-lg-end">
+                        <a href="<?= base_url('setoran') ?>" class="btn btn-warning fw-bold text-dark rounded-pill px-4 py-2 shadow-sm w-100 w-sm-auto text-center">
+                            <i class="fas fa-receipt me-2"></i>Lihat Struk Setoran Saya
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     <?php endif; ?>
 
-    <!-- Recent Setoran -->
+    <!-- User Event Status Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-12">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-3 p-md-4 d-flex align-items-center">
+                    <div class="rounded-4 p-3 bg-primary bg-opacity-10 text-primary me-3 flex-shrink-0">
+                        <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <small class="text-muted fw-semibold d-block text-truncate">Kewajiban Acara</small>
+                        <h4 class="fw-bold mb-0 text-dark text-truncate">Rp <?= number_format($userKewajiban ?? 200000, 0, ',', '.') ?></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-12">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-3 p-md-4 d-flex align-items-center">
+                    <div class="rounded-4 p-3 bg-success bg-opacity-10 text-success me-3 flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <small class="text-muted fw-semibold d-block text-truncate">Sudah Dibayar</small>
+                        <h4 class="fw-bold mb-0 text-success text-truncate">Rp <?= number_format($userEventSetoran ?? 0, 0, ',', '.') ?></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-12">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-3 p-md-4 d-flex align-items-center">
+                    <div class="rounded-4 p-3 <?= ($userSisaTagihan ?? 0) <= 0 ? 'bg-success' : 'bg-danger' ?> bg-opacity-10 <?= ($userSisaTagihan ?? 0) <= 0 ? 'text-success' : 'text-danger' ?> me-3 flex-shrink-0">
+                        <i class="fas <?= ($userSisaTagihan ?? 0) <= 0 ? 'fa-award' : 'fa-exclamation-triangle' ?> fa-2x"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <small class="text-muted fw-semibold d-block text-truncate">Status Tagihan Anda</small>
+                        <?php if (($userSisaTagihan ?? 0) <= 0): ?>
+                            <span class="badge bg-success rounded-pill px-3 py-2 fs-6">LUNAS</span>
+                        <?php else: ?>
+                            <h4 class="fw-bold mb-0 text-danger text-truncate">Rp <?= number_format($userSisaTagihan, 0, ',', '.') ?></h4>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Setoran History -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>Setoran Terbaru
-                    </h5>
-                    <a href="<?= base_url('riwayat') ?>" class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye me-1"></i>Lihat Semua
-                    </a>
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-history text-primary me-2"></i>Catatan Pembayaran Setoran Anda</h5>
+                    <a href="<?= base_url('setoran') ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3">Lihat Semua Struk</a>
                 </div>
-                <div class="card-body">
-                    <?php if(empty($recentSetoran)): ?>
+                <div class="card-body p-3 p-md-4 pt-0">
+                    <?php if (empty($recentSetoran)): ?>
                         <div class="text-center py-5">
-                            <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">Belum ada setoran</h5>
-                            <p class="text-muted">Setoran Anda akan muncul di sini setelah dicatat oleh admin.</p>
+                            <i class="fas fa-receipt fa-3x text-muted mb-3 opacity-50"></i>
+                            <h5 class="fw-bold text-muted">Belum ada catatan setoran</h5>
+                            <p class="text-muted mb-0">Setoran yang Anda serahkan ke pengurus akan tampil di sini setelah diverifikasi.</p>
                         </div>
                     <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block table-responsive border shadow-sm rounded-4">
+                            <table class="table table-hover align-middle bg-white mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Tanggal</th>
-                                        <th>Periode</th>
-                                        <th>Nominal</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th class="ps-4">No</th>
+                                        <th>Tanggal Setor</th>
+                                        <th>Nominal Setoran</th>
+                                        <th>Status Verifikasi</th>
+                                        <th>Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach($recentSetoran as $setoran): ?>
+                                    <?php $no = 1; foreach ($recentSetoran as $setoran): ?>
                                     <tr>
-                                        <td><?= date('d F Y', strtotime($setoran['tanggal_setoran'])) ?></td>
+                                        <td class="ps-4 text-muted small"><?= $no++ ?></td>
                                         <td>
-                                            <?php 
-                                            $periodeModel = new \App\Models\PeriodeModel();
-                                            $periode = $periodeModel->find($setoran['periode_id']);
-                                            echo $periode ? esc($periode['nama_periode']) : '-';
-                                            ?>
+                                            <div class="fw-bold text-dark"><?= date('d M Y', strtotime($setoran['tanggal_setoran'])) ?></div>
+                                            <small class="text-muted"><?= date('H:i', strtotime($setoran['created_at'])) ?></small>
                                         </td>
-                                        <td class="fw-bold">Rp <?= number_format($setoran['nominal'], 0, ',', '.') ?></td>
+                                        <td class="fw-bold text-success h6 mb-0">
+                                            Rp <?= number_format($setoran['nominal'], 0, ',', '.') ?>
+                                        </td>
                                         <td>
-                                            <?php 
-                                            $badgeClass = match($setoran['status_setoran']) {
-                                                'tercatat' => 'badge-info',
-                                                'diverifikasi' => 'badge-success',
-                                                'dikoreksi' => 'badge-warning',
-                                                'dibatalkan' => 'badge-danger',
-                                                default => 'badge-secondary'
-                                            };
-                                            ?>
-                                            <span class="badge <?= $badgeClass ?>">
-                                                <?= ucfirst($setoran['status_setoran']) ?>
+                                            <span class="badge bg-success rounded-pill px-3 py-2">
+                                                <i class="fas fa-check-circle me-1"></i> Diverifikasi
                                             </span>
                                         </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailModal<?= $setoran['id'] ?>">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                        <td class="text-muted small">
+                                            <?= esc($setoran['keterangan'] ?? 'Setoran iuran acara') ?>
                                         </td>
                                     </tr>
-                                    
-                                    <!-- Detail Modal -->
-                                    <div class="modal fade" id="detailModal<?= $setoran['id'] ?>" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Detail Setoran</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Tanggal Setoran</label>
-                                                        <p class="fw-bold"><?= date('d F Y', strtotime($setoran['tanggal_setoran'])) ?></p>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Periode</label>
-                                                        <p class="fw-bold"><?= $periode ? esc($periode['nama_periode']) : '-' ?></p>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Nominal</label>
-                                                        <p class="fw-bold text-primary">Rp <?= number_format($setoran['nominal'], 0, ',', '.') ?></p>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Status</label>
-                                                        <p>
-                                                            <span class="badge <?= $badgeClass ?>">
-                                                                <?= ucfirst($setoran['status_setoran']) ?>
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                    <?php if(!empty($setoran['keterangan'])): ?>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Keterangan</label>
-                                                        <p><?= esc($setoran['keterangan']) ?></p>
-                                                    </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Mobile Card View -->
+                        <div class="d-block d-md-none mt-2">
+                            <div class="d-flex flex-column gap-3">
+                                <?php foreach ($recentSetoran as $setoran): ?>
+                                    <div class="card border-0 rounded-4 shadow-sm bg-white">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2" style="border-color: #f1f5f9 !important;">
+                                                <div>
+                                                    <div class="fw-bold text-dark"><?= date('d M Y', strtotime($setoran['tanggal_setoran'])) ?></div>
+                                                    <small class="text-muted"><?= date('H:i', strtotime($setoran['created_at'])) ?></small>
+                                                </div>
+                                                <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check-circle"></i></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="fw-bold text-success fs-5">Rp <?= number_format($setoran['nominal'], 0, ',', '.') ?></div>
+                                                <small class="text-muted"><?= esc($setoran['keterangan'] ?? 'Setoran iuran acara') ?></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Quick Actions -->
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-comments fa-3x text-primary"></i>
-                    </div>
-                    <h5>Obrolan</h5>
-                    <p class="text-muted">Hubungi admin atau pengguna lain melalui fitur chat.</p>
-                    <a href="<?= base_url('chat') ?>" class="btn btn-primary">
-                        <i class="fas fa-comment me-1"></i>Mulai Chat
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-user-edit fa-3x text-success"></i>
-                    </div>
-                    <h5>Profil</h5>
-                    <p class="text-muted">Perbarui informasi profil dan pengaturan akun Anda.</p>
-                    <a href="<?= base_url('profile/edit') ?>" class="btn btn-success">
-                        <i class="fas fa-edit me-1"></i>Edit Profil
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-file-invoice fa-3x text-warning"></i>
-                    </div>
-                    <h5>Riwayat Lengkap</h5>
-                    <p class="text-muted">Lihat semua riwayat setoran Anda dari awal hingga sekarang.</p>
-                    <a href="<?= base_url('riwayat') ?>" class="btn btn-warning">
-                        <i class="fas fa-list me-1"></i>Lihat Riwayat
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<script>
-// Period Chart
-const periodeCtx = document.getElementById('periodeChart').getContext('2d');
-const periodeChart = new Chart(periodeCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Selesai', 'Berjalan', 'Belum Mulai'],
-        datasets: [{
-            data: [
-                <?= $periodeStats['completed'] ?? 0 ?>,
-                <?= $periodeStats['in_progress'] ?? 0 ?>,
-                <?= $periodeStats['not_started'] ?? 0 ?>
-            ],
-            backgroundColor: [
-                '#10b981',
-                '#f59e0b',
-                '#6b7280'
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        cutout: '70%',
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        responsive: true,
-        maintainAspectRatio: true
-    }
-});
-
-// Update stats every minute
-function updateStats() {
-    fetch('/api/dashboard/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Update stats cards
-                document.querySelector('[data-stat="total-setoran"]').textContent = 
-                    'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.total_setoran);
-                document.querySelector('[data-stat="total-transactions"]').textContent = 
-                    data.data.total_transactions;
-                document.querySelector('[data-stat="progress-percentage"]').textContent = 
-                    data.data.progress_percentage.toFixed(1) + '%';
-            }
-        })
-        .catch(error => console.error('Error updating stats:', error));
-}
-
-// Update every minute
-setInterval(updateStats, 60000);
-</script>
 <?= $this->endSection() ?>

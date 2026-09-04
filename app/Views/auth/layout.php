@@ -265,11 +265,9 @@
             <div class="col-md-5">
                 <div class="auth-left">
                     <div class="logo">
-                        <div class="logo-icon">
-                            <i class="fas fa-hand-holding-usd"></i>
-                        </div>
+                        <img src="<?= base_url('assets/img/logo.jpg') ?>" alt="Logo Mandelun Community" class="rounded-circle shadow me-2" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.8);">
                         <div class="logo-text">
-                            Sistem Setoran Iuran
+                            Mandelun Community
                         </div>
                     </div>
                     
